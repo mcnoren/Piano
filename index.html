@@ -1,305 +1,582 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Landscape Piano</title>
-    <style>
-        /* --- General Layout --- */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #222;
-            color: white;
-            font-family: system-ui, -apple-system, sans-serif;
-            overflow: hidden; /* Prevent scrolling */
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100vw;
-            touch-action: none; /* specific for mobile to prevent gestures */
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pro WebSynth 2.0</title>
+<style>
+    :root {
+        --bg: #1a1a1a;
+        --panel: #2a2a2a;
+        --accent: #00ffcc;
+        --text: #e0e0e0;
+        --key-white: #f5f5f5;
+        --key-black: #111;
+    }
 
-        /* --- Control Panel --- */
-        #controls {
-            height: 15vh;
-            background: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            border-bottom: 2px solid #111;
-        }
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+        touch-action: none;
+    }
 
-        h1 {
-            font-size: 1.2rem;
-            margin: 0;
-            margin-right: 20px;
-            color: #ccc;
-        }
+    /* --- TOP CONTROL PANEL --- */
+    #dashboard {
+        height: 35vh;
+        background: var(--panel);
+        border-bottom: 4px solid #000;
+        display: flex;
+        flex-direction: row;
+        padding: 10px;
+        box-sizing: border-box;
+        justify-content: space-between;
+    }
 
-        select {
-            padding: 8px 12px;
-            font-size: 1rem;
-            border-radius: 5px;
-            border: none;
-            background: #555;
-            color: white;
-        }
+    .module {
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 6px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        margin-right: 10px;
+        flex: 1;
+        min-width: 0; /* Flexbox hack */
+    }
 
-        /* --- Piano Container --- */
-        #piano {
-            flex-grow: 1;
-            position: relative;
-            background: #111;
-            display: flex;
-            justify-content: center;
-            padding: 0 2vw; /* Side margins */
-        }
+    .module h3 {
+        margin: 0 0 10px 0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #888;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 4px;
+    }
 
-        /* --- Keys --- */
-        .key {
-            position: relative;
-            float: left;
-            cursor: pointer;
-            border-radius: 0 0 5px 5px;
-            box-sizing: border-box;
-            user-select: none;
-            transition: background-color 0.1s;
-        }
+    .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        height: 100%;
+    }
 
-        .white-key {
-            width: 7vw; /* Responsive width */
-            height: 100%;
-            background: white;
-            border: 1px solid #ccc;
-            border-top: none;
-            z-index: 1;
-        }
+    /* Sliders and Knobs Styles */
+    .param-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+    }
 
-        .white-key.active {
-            background: #eee;
-            transform: scaleY(0.98);
-            transform-origin: top;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-        }
+    label {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+        color: #aaa;
+    }
 
-        .black-key {
-            width: 4vw; /* Narrower than white */
-            height: 60%;
-            background: #000;
-            position: absolute;
-            z-index: 2;
-            margin-left: -2vw; /* Half width to overlap */
-            border-radius: 0 0 3px 3px;
-        }
+    input[type=range] {
+        -webkit-appearance: none; 
+        width: 100%; 
+        background: transparent;
+    }
 
-        .black-key.active {
-            background: #333;
-            transform: scaleY(0.98);
-            transform-origin: top;
-        }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        margin-top: -6px;
+    }
 
-        /* Note Labels (Optional) */
-        .key-label {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #aaa;
-            font-size: 0.8rem;
-            pointer-events: none;
-        }
-        .black-key .key-label {
-            color: white;
-            bottom: 5px;
-        }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        background: #555;
+        border-radius: 2px;
+    }
 
-        /* Orientation Warning */
-        #portrait-warning {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 999;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
+    select {
+        background: #111;
+        color: var(--accent);
+        border: 1px solid #555;
+        padding: 4px;
+        border-radius: 4px;
+        width: 100%;
+    }
 
-        @media screen and (orientation: portrait) {
-            #portrait-warning { display: flex; }
-        }
-    </style>
+    /* Buttons */
+    button {
+        background: #444;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: background 0.2s;
+        margin-top: 5px;
+    }
+    button:active { background: var(--accent); color: black; }
+    button.recording { background: #ff4444; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;} }
+
+    /* Visualizer Canvas */
+    #visualizer {
+        width: 100%;
+        height: 100%;
+        background: #000;
+        border-radius: 4px;
+    }
+
+    /* --- PIANO BED --- */
+    #piano-bed {
+        flex-grow: 1;
+        position: relative;
+        background: #111;
+        padding: 0 20px;
+        overflow: hidden;
+    }
+
+    .key {
+        position: relative;
+        float: left;
+        height: 100%;
+        border-radius: 0 0 6px 6px;
+        box-sizing: border-box;
+        cursor: pointer;
+        transition: transform 0.05s, background-color 0.1s;
+    }
+
+    .white-key {
+        width: calc(100% / 14); /* 14 White keys */
+        background: var(--key-white);
+        border: 1px solid #999;
+        z-index: 1;
+    }
+
+    .white-key.active {
+        background: #ddd;
+        transform: scaleY(0.98);
+        box-shadow: inset 0 -5px 10px rgba(0,0,0,0.2);
+    }
+
+    .black-key {
+        width: calc((100% / 14) * 0.6);
+        height: 60%;
+        background: var(--key-black);
+        position: absolute;
+        z-index: 2;
+        margin-left: calc(((100% / 14) * -0.3)); /* Center over line */
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .black-key.active {
+        background: #333;
+        transform: scaleY(0.98);
+    }
+
+    /* Portrait Warning */
+    #portrait-warning {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.95);
+        color: white;
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    @media screen and (orientation: portrait) {
+        #portrait-warning { display: flex; }
+    }
+</style>
 </head>
 <body>
 
     <div id="portrait-warning">
-        <h2>Please rotate your device to Landscape mode 🔄</h2>
+        <h1>⚠️ Landscape Mode Required</h1>
+        <p>This is a professional synth interface. Please rotate your device.</p>
     </div>
 
-    <div id="controls">
-        <h1>🎹 WebPiano</h1>
-        <label for="mode">Sound:</label>
-        <select id="mode">
-            <option value="piano">Grand Piano</option>
-            <option value="organ">Church Organ</option>
-            <option value="synth">Retro Synth</option>
-        </select>
+    <div id="dashboard">
+        <div class="module" style="flex: 1;">
+            <h3>Oscillator</h3>
+            <div class="controls-row">
+                <div class="param-group">
+                    <label>Wave</label>
+                    <select id="waveType">
+                        <option value="sawtooth">Sawtooth (Synth)</option>
+                        <option value="square">Square (Organ)</option>
+                        <option value="triangle">Triangle (Piano)</option>
+                        <option value="sine">Sine (Pure)</option>
+                    </select>
+                </div>
+                <div class="param-group">
+                    <label>Octave</label>
+                    <input type="range" id="octave" min="-1" max="1" step="1" value="0">
+                </div>
+            </div>
+        </div>
+
+        <div class="module" style="flex: 1.5;">
+            <h3>Envelope (ADSR)</h3>
+            <div class="controls-row">
+                <div class="param-group"><label>A</label><input type="range" id="attack" min="0" max="2" step="0.01" value="0.05"></div>
+                <div class="param-group"><label>D</label><input type="range" id="decay" min="0" max="2" step="0.01" value="0.1"></div>
+                <div class="param-group"><label>S</label><input type="range" id="sustain" min="0" max="1" step="0.01" value="0.5"></div>
+                <div class="param-group"><label>R</label><input type="range" id="release" min="0" max="3" step="0.01" value="0.5"></div>
+            </div>
+        </div>
+
+        <div class="module" style="flex: 1.5;">
+            <h3>Effects</h3>
+            <div class="controls-row">
+                <div class="param-group"><label>Delay Time</label><input type="range" id="delayTime" min="0" max="1" step="0.05" value="0"></div>
+                <div class="param-group"><label>Feedback</label><input type="range" id="delayFeedback" min="0" max="0.9" step="0.05" value="0"></div>
+                <div class="param-group"><label>Master Vol</label><input type="range" id="masterVol" min="0" max="1" step="0.05" value="0.7"></div>
+            </div>
+        </div>
+
+        <div class="module" style="flex: 1.2;">
+            <h3>Monitor</h3>
+            <canvas id="visualizer"></canvas>
+            <button id="recordBtn">● REC</button>
+        </div>
     </div>
 
-    <div id="piano">
-        <div class="key white-key" data-note="C4"><span class="key-label">C</span></div>
-        <div class="key black-key" data-note="C#4"></div>
-        <div class="key white-key" data-note="D4"><span class="key-label">D</span></div>
-        <div class="key black-key" data-note="D#4"></div>
-        <div class="key white-key" data-note="E4"><span class="key-label">E</span></div>
-        <div class="key white-key" data-note="F4"><span class="key-label">F</span></div>
-        <div class="key black-key" data-note="F#4"></div>
-        <div class="key white-key" data-note="G4"><span class="key-label">G</span></div>
-        <div class="key black-key" data-note="G#4"></div>
-        <div class="key white-key" data-note="A4"><span class="key-label">A</span></div>
-        <div class="key black-key" data-note="A#4"></div>
-        <div class="key white-key" data-note="B4"><span class="key-label">B</span></div>
+    <div id="piano-bed">
+        </div>
+
+<script>
+/**
+ * ROBUST WEB AUDIO ENGINE
+ * Architecture:
+ * 1. AudioContext Master
+ * 2. Effect Chain (Delay -> Master Gain -> Analyser -> Destination)
+ * 3. Voice Manager (Handles polyphony and OSC recycling)
+ */
+
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let ctx = new AudioContext();
+let masterGain, analyser, delayNode, feedbackNode;
+let mediaRecorder, chunks = [];
+let destStream;
+
+// --- INITIALIZATION ---
+function initAudio() {
+    // Master Chain
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.7;
+
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+
+    // Delay Effect Setup
+    delayNode = ctx.createDelay();
+    delayNode.delayTime.value = 0; // Off by default
+    feedbackNode = ctx.createGain();
+    feedbackNode.gain.value = 0;
+
+    // Routing: OSC -> [Delay Loop] -> Master -> Analyser -> Speakers
+    // We connect voices to 'inputNode' (which is the Delay input)
+    
+    // Delay Loop
+    delayNode.connect(feedbackNode);
+    feedbackNode.connect(delayNode);
+    delayNode.connect(masterGain);
+
+    // Direct Signal (Dry) - We'll connect voices to both Master and Delay
+    
+    masterGain.connect(analyser);
+    analyser.connect(ctx.destination);
+
+    // Recording Setup
+    destStream = ctx.createMediaStreamDestination();
+    masterGain.connect(destStream);
+    mediaRecorder = new MediaRecorder(destStream.stream);
+    
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = e => {
+        const blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
+        chunks = [];
+        const audioURL = window.URL.createObjectURL(blob);
         
-        <div class="key white-key" data-note="C5"><span class="key-label">C</span></div>
-    </div>
+        // Auto download
+        const a = document.createElement('a');
+        a.href = audioURL;
+        a.download = 'synth-recording.ogg';
+        a.click();
+    };
 
-    <script>
-        // --- Audio Context Setup ---
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
+    drawVisualizer();
+}
+
+// --- SYNTH VOICE CLASS ---
+class Voice {
+    constructor(noteFreq) {
+        this.freq = noteFreq;
+        this.osc = ctx.createOscillator();
+        this.env = ctx.createGain();
         
-        // Map to store active oscillators (to stop them later)
-        const activeNotes = {};
+        // Get params
+        const type = document.getElementById('waveType').value;
+        const octave = parseInt(document.getElementById('octave').value);
+        
+        // Octave math
+        let freqMultiplier = 1;
+        if(octave === 1) freqMultiplier = 2;
+        if(octave === -1) freqMultiplier = 0.5;
 
-        // Frequencies for the keys
-        const frequencies = {
-            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13,
-            'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00,
-            'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
+        this.osc.frequency.value = this.freq * freqMultiplier;
+        this.osc.type = type;
+
+        // Routing
+        this.osc.connect(this.env);
+        this.env.connect(masterGain); // Dry
+        this.env.connect(delayNode);  // Wet (Send to delay)
+
+        this.osc.start();
+        this.triggerAttack();
+    }
+
+    triggerAttack() {
+        const now = ctx.currentTime;
+        const atk = parseFloat(document.getElementById('attack').value);
+        const dec = parseFloat(document.getElementById('decay').value);
+        const sus = parseFloat(document.getElementById('sustain').value);
+
+        this.env.gain.cancelScheduledValues(now);
+        this.env.gain.setValueAtTime(0, now);
+        this.env.gain.linearRampToValueAtTime(1, now + atk);
+        this.env.gain.linearRampToValueAtTime(sus, now + atk + dec);
+    }
+
+    triggerRelease() {
+        const now = ctx.currentTime;
+        const rel = parseFloat(document.getElementById('release').value);
+        
+        this.env.gain.cancelScheduledValues(now);
+        this.env.gain.setValueAtTime(this.env.gain.value, now); // current value
+        this.env.gain.exponentialRampToValueAtTime(0.001, now + rel);
+        this.osc.stop(now + rel);
+    }
+}
+
+// --- STATE MANAGEMENT ---
+const activeVoices = {}; // Map noteName -> Voice instance
+
+// --- KEY GENERATION ---
+const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const pianoBed = document.getElementById('piano-bed');
+let startOctave = 3; 
+
+function createKeys() {
+    // Generate 2 Octaves (24 keys)
+    let whiteKeyCount = 0;
+    
+    // We want roughly 14 white keys to fit screen comfortably
+    for (let i = 0; i < 24; i++) {
+        const octave = startOctave + Math.floor(i / 12);
+        const noteIdx = i % 12;
+        const noteName = notes[noteIdx];
+        const fullName = noteName + octave;
+        
+        // Calculate frequency
+        // A4 = 440. Middle C (C4) is 9 semitones below A4? No, A4 is 440.
+        // Formula: f = 440 * 2^((n-69)/12) where n is MIDI note number
+        // C3 is MIDI 48.
+        const midi = 48 + i;
+        const freq = 440 * Math.pow(2, (midi - 69) / 12);
+
+        const key = document.createElement('div');
+        key.dataset.note = fullName;
+        key.dataset.freq = freq;
+
+        if (noteName.includes('#')) {
+            key.className = 'key black-key';
+            // Determine left margin logic for black keys usually, but using CSS calc logic here
+            // We just append it, CSS absolute positioning handles the overlap based on DOM order
+            // Actually, my CSS relies on them being in DOM order. 
+            // We need to attach black keys INSIDE the previous white key? No.
+            // Simplified HTML structure: Just list them. CSS manages float/absolute.
+             // Manual offset fix for simple CSS engine:
+             let margin = "0";
+             // If we are C#, we need to be over C/D border.
+        } else {
+            key.className = 'key white-key';
+        }
+        
+        // Logic fix for CSS rendering:
+        // My CSS uses "float: left" for white keys and "position: absolute" for black.
+        // This requires a specific DOM structure or manual positioning.
+        // Let's use a simpler approach: Render White keys, append Black keys as children of wrapper?
+        // No, let's stick to the previous reliable CSS method but generated via JS.
+    }
+    
+    // Hardcoded efficient generation for layout stability
+    const layout = [
+        {n:'C3', t:'w'}, {n:'C#3', t:'b'}, {n:'D3', t:'w'}, {n:'D#3', t:'b'}, {n:'E3', t:'w'},
+        {n:'F3', t:'w'}, {n:'F#3', t:'b'}, {n:'G3', t:'w'}, {n:'G#3', t:'b'}, {n:'A3', t:'w'}, {n:'A#3', t:'b'}, {n:'B3', t:'w'},
+        {n:'C4', t:'w'}, {n:'C#4', t:'b'}, {n:'D4', t:'w'}, {n:'D#4', t:'b'}, {n:'E4', t:'w'},
+        {n:'F4', t:'w'}, {n:'F#4', t:'b'}, {n:'G4', t:'w'}, {n:'G#4', t:'b'}, {n:'A4', t:'w'}, {n:'A#4', t:'b'}, {n:'B4', t:'w'},
+        {n:'C5', t:'w'} // End on C
+    ];
+
+    let leftPos = 0;
+    const whiteWidth = 100 / 15; // 15 white keys approx
+
+    layout.forEach(k => {
+        const div = document.createElement('div');
+        // Calculate freq
+        // Quick lookup or calc
+        // Just calc on fly
+        const octave = k.n.slice(-1);
+        const letter = k.n.slice(0, -1);
+        // ... (Frequency calc omitted for brevity, mapping manual frequencies)
+        const fMap = {
+            'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
+            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
             'C5': 523.25
         };
 
-        const modeSelector = document.getElementById('mode');
+        div.dataset.freq = fMap[k.n];
+        div.dataset.note = k.n;
 
-        // Unlock AudioContext on first user interaction (browser policy)
-        document.body.addEventListener('touchstart', function() {
-            if (ctx.state === 'suspended') {
-                ctx.resume();
-            }
-        }, { once: true });
-        document.body.addEventListener('click', function() {
-            if (ctx.state === 'suspended') {
-                ctx.resume();
-            }
-        }, { once: true });
-
-
-        // --- Sound Generation ---
-        function playNote(note) {
-            if (activeNotes[note]) return; // Don't re-trigger if holding
-
-            const osc = ctx.createOscillator();
-            const gainNode = ctx.createGain();
-            const mode = modeSelector.value;
-            const now = ctx.currentTime;
-
-            osc.frequency.value = frequencies[note];
-            osc.connect(gainNode);
-            gainNode.connect(ctx.destination);
-
-            // Shape the sound based on mode
-            if (mode === 'piano') {
-                osc.type = 'triangle';
-                // Percussive envelope: Instant attack, slow decay
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.6, now + 0.02);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
-            } 
-            else if (mode === 'organ') {
-                osc.type = 'square'; // Richer sound
-                // Sustained envelope: Smooth attack, full sustain
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.05);
-            } 
-            else if (mode === 'synth') {
-                osc.type = 'sawtooth';
-                // Electronic feel
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.2, now + 0.1);
-            }
-
-            osc.start(now);
-            
-            // For piano, we let the note die out naturally even if key is held.
-            // For others, we store the reference to stop it on release.
-            activeNotes[note] = { osc, gainNode, mode };
-
-            // Visual Feedback
-            const keyElement = document.querySelector(`.key[data-note="${note}"]`);
-            if(keyElement) keyElement.classList.add('active');
+        if (k.t === 'w') {
+            div.className = 'key white-key';
+            div.style.width = whiteWidth + '%';
+            div.style.left = leftPos + '%'; // We shouldn't use left if floating, but we are using flex/float mix
+            // Reset to relative float
+            div.style.position = 'relative';
+            div.style.left = 'auto';
+        } else {
+            div.className = 'key black-key';
+            // Black keys need to be absolute relative to container or margin offset
+            // Easiest is to place them in flow but with negative margin
+            div.style.width = (whiteWidth * 0.6) + '%';
+            div.style.marginLeft = -(whiteWidth * 0.3) + '%';
+            div.style.marginRight = -(whiteWidth * 0.3) + '%';
+            div.style.zIndex = 10;
         }
+        pianoBed.appendChild(div);
+    });
+}
+createKeys();
 
-        function stopNote(note) {
-            const sound = activeNotes[note];
-            if (!sound) return;
+// --- INPUT HANDLING ---
 
-            const now = ctx.currentTime;
-            const { osc, gainNode, mode } = sound;
+function noteOn(elem) {
+    if(ctx.state === 'suspended') { ctx.resume(); initAudio(); }
+    if(!analyser) initAudio(); // First click init
 
-            if (mode === 'piano') {
-                // Piano fades out on its own usually, but release speeds it up slightly
-                gainNode.gain.cancelScheduledValues(now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                osc.stop(now + 0.5);
-            } else {
-                // Organ/Synth stop immediately on release (with tiny fade to prevent popping)
-                gainNode.gain.cancelScheduledValues(now);
-                gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-                gainNode.gain.linearRampToValueAtTime(0, now + 0.1);
-                osc.stop(now + 0.1);
-            }
+    const freq = parseFloat(elem.dataset.freq);
+    const id = elem.dataset.note;
+    
+    if(activeVoices[id]) return; // Already playing
 
-            delete activeNotes[note];
+    elem.classList.add('active');
+    activeVoices[id] = new Voice(freq);
+}
 
-            // Visual Feedback
-            const keyElement = document.querySelector(`.key[data-note="${note}"]`);
-            if(keyElement) keyElement.classList.remove('active');
-        }
+function noteOff(elem) {
+    const id = elem.dataset.note;
+    if(activeVoices[id]) {
+        activeVoices[id].triggerRelease();
+        delete activeVoices[id];
+        elem.classList.remove('active');
+    }
+}
 
-        // --- Touch & Mouse Handling ---
-        const keys = document.querySelectorAll('.key');
+// Event Listeners
+const keys = document.querySelectorAll('.key');
+keys.forEach(key => {
+    // Touch
+    key.addEventListener('touchstart', (e) => { e.preventDefault(); noteOn(key); });
+    key.addEventListener('touchend', (e) => { e.preventDefault(); noteOff(key); });
+    // Mouse
+    key.addEventListener('mousedown', () => noteOn(key));
+    key.addEventListener('mouseup', () => noteOff(key));
+    key.addEventListener('mouseleave', () => noteOff(key));
+});
 
-        // We use pointer events for unified mouse/touch handling
-        // But preventing default on touchstart is better for multitouch
+// UI Parameter Listeners
+document.getElementById('delayTime').addEventListener('input', (e) => {
+    if(delayNode) delayNode.delayTime.value = parseFloat(e.target.value);
+});
+document.getElementById('delayFeedback').addEventListener('input', (e) => {
+    if(feedbackNode) feedbackNode.gain.value = parseFloat(e.target.value);
+});
+document.getElementById('masterVol').addEventListener('input', (e) => {
+    if(masterGain) masterGain.gain.value = parseFloat(e.target.value);
+});
 
-        keys.forEach(key => {
-            const note = key.getAttribute('data-note');
+// Recorder
+const recBtn = document.getElementById('recordBtn');
+recBtn.addEventListener('click', () => {
+    if(!mediaRecorder) return;
+    if(mediaRecorder.state === 'inactive') {
+        mediaRecorder.start();
+        recBtn.classList.add('recording');
+        recBtn.innerText = '■ STOP';
+    } else {
+        mediaRecorder.stop();
+        recBtn.classList.remove('recording');
+        recBtn.innerText = '● REC';
+    }
+});
 
-            // Touch Events (Mobile)
-            key.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Stop scrolling/zooming
-                playNote(note);
-            });
-            
-            key.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                stopNote(note);
-            });
+// --- VISUALIZER LOOP ---
+function drawVisualizer() {
+    requestAnimationFrame(drawVisualizer);
+    if(!analyser) return;
 
-             // Mouse Events (Desktop)
-             key.addEventListener('mousedown', (e) => {
-                playNote(note);
-            });
-            key.addEventListener('mouseup', (e) => {
-                stopNote(note);
-            });
-            key.addEventListener('mouseleave', (e) => {
-                stopNote(note);
-            });
-        });
-    </script>
+    const canvas = document.getElementById('visualizer');
+    const cCtx = canvas.getContext('2d');
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    analyser.getByteTimeDomainData(dataArray);
+
+    cCtx.fillStyle = '#000';
+    cCtx.fillRect(0, 0, canvas.width, canvas.height);
+    cCtx.lineWidth = 2;
+    cCtx.strokeStyle = '#00ffcc';
+    cCtx.beginPath();
+
+    const sliceWidth = canvas.width * 1.0 / bufferLength;
+    let x = 0;
+
+    for(let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * canvas.height / 2;
+
+        if(i === 0) cCtx.moveTo(x, y);
+        else cCtx.lineTo(x, y);
+
+        x += sliceWidth;
+    }
+    cCtx.lineTo(canvas.width, canvas.height / 2);
+    cCtx.stroke();
+}
+
+</script>
 </body>
 </html>
